@@ -1,0 +1,15 @@
+GEM
+  remote: https://rubygems.org/
+  specs:
+    sorbet (0.5.9531)
+      sorbet-static (= 0.5.9531)
+    sorbet-static (0.5.9531-x86_64-linux)
+
+PLATFORMS
+  x86_64-linux
+
+DEPENDENCIES
+  sorbet
+
+BUNDLED WITH
+   2.3.3
