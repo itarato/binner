@@ -24,7 +24,7 @@ binner.register(type: User, version: 0) do
     # # Input:
     # # - same as return of encoder
     # # Return:
-    # # - 
+    # # -
     # decode do |value|
     # end
   end
@@ -36,3 +36,5 @@ binner.register(type: User, version: 0) do
     User.new(raw_name)
   end
 end
+
+encoded = binner.encode()
