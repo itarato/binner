@@ -4,9 +4,11 @@ GEM
     sorbet (0.5.9531)
       sorbet-static (= 0.5.9531)
     sorbet-runtime (0.5.9534)
+    sorbet-static (0.5.9531-universal-darwin-21)
     sorbet-static (0.5.9531-x86_64-linux)
 
 PLATFORMS
+  x86_64-darwin-21
   x86_64-linux
 
 DEPENDENCIES
