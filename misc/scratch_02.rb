@@ -24,6 +24,9 @@ user_name_field = Binner::Field[String].new(
   encoder: ->(s) { s.name },
 )
 
+user_name_decoder = Binner::FieldDecoder[String].new(0, ->(raw) { raw })
+user_name_field.add_decoder(user_name_decoder)
+
 user_type.add_field(user_name_field)
 
 binner.add_type(user_type)

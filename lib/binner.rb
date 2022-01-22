@@ -37,13 +37,13 @@ class Binner
     sig { returns(Integer) }
     attr_reader(:version)
 
-    sig { returns(T.proc.params(obj: FieldWrapper).returns(TargetT)) }
+    sig { returns(T.proc.params(obj: T.untyped).returns(TargetT)) }
     attr_reader(:decoder)
 
     sig do
       params(
         version: Integer,
-        decoder: T.proc.params(obj: FieldWrapper).returns(TargetT),
+        decoder: T.proc.params(obj: T.untyped).returns(TargetT),
       ).void
     end
     def initialize(version, decoder)
