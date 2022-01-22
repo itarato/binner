@@ -34,6 +34,7 @@ class Binner
 
     TargetT = type_member
 
+    # TODO: version here might not be useful, we only need it for the Field for selection.
     sig { returns(Integer) }
     attr_reader(:version)
 
@@ -46,7 +47,7 @@ class Binner
         decoder: T.proc.params(obj: T.untyped).returns(TargetT),
       ).void
     end
-    def initialize(version, decoder)
+    def initialize(version, &decoder)
       @version = version
       @decoder = decoder
     end
@@ -125,21 +126,6 @@ class Binner
     end
   end
 
-  # module FieldReader
-  #   extend(T::Sig)
-  #   extend(T::Helpers)
-
-  #   interface!
-
-  #   sig do
-  #     abstract
-  #       .params(
-  #         name: Symbol,
-  #       ).returns(T.untyped)
-  #   end
-  #   def get_field_value(name); end
-  # end
-
   class Type
     #
     # Contains information about one type.
@@ -147,8 +133,6 @@ class Binner
 
     extend(T::Sig)
     extend(T::Generic)
-
-    # include(FieldReader)
 
     TargetT = type_member
 
@@ -163,7 +147,7 @@ class Binner
         factory: T.proc.params(fields: T::Hash[Symbol, T.untyped]).returns(TargetT),
       ).void
     end
-    def initialize(klass, version, factory)
+    def initialize(klass, version, &factory)
       @klass = klass
       @version = version
       @factory = factory
@@ -179,16 +163,6 @@ class Binner
     def add_field(field)
       @fields[field.name] = field
     end
-
-    # sig do
-    #   override
-    #     .params(
-    #       name: Symbol,
-    #     ).returns(T.untyped)
-    # end
-    # def get_field_value(name)
-
-    # end
 
     sig do
       params(
