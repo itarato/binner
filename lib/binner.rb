@@ -3,6 +3,12 @@
 
 require "sorbet-runtime"
 
+#
+# Missing:
+# - deployment switch mechanism
+# - missing tests
+#
+
 class Binner
   #
   # Binner is the starting point that owns all type-codec information.
