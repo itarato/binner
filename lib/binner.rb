@@ -74,7 +74,16 @@ class Binner
       @from_version = from_version
       @to_version = to_version
       @encoder = encoder
-      @decoders = T.let([], T::Array[FieldDecoder[TargetT]])
+      @decoders = T.let({}, T::Hash[Integer, FieldDecoder[T.untyped]])
+    end
+
+    sig do
+      params(
+        decoder: FieldDecoder[T.untyped],
+      ).void
+    end
+    def add_decoder(decoder)
+      @decoders[decoder.version] = decoder
     end
 
     sig do
@@ -92,18 +101,17 @@ class Binner
 
     sig do
       params(
-        raw: { version: Integer, data: FieldWrapper },
+        raw: FieldWrapper,
       ).returns(TargetT)
     end
     def decode(raw)
-      version = raw[:version]
-      raise(VersionNotFoundError) unless version
+      version = raw.version
       raise(NonSupportedVersionError) unless part_of_version?(version)
 
-      decoder = @decoders.find { |d| d.version == version }
+      decoder = @decoders[version]
       raise(DecoderNotFoundError) unless decoder
 
-      data = raw[:data]
+      data = raw.data
       decoder.decoder.call(data)
     end
 
@@ -117,6 +125,21 @@ class Binner
     end
   end
 
+  # module FieldReader
+  #   extend(T::Sig)
+  #   extend(T::Helpers)
+
+  #   interface!
+
+  #   sig do
+  #     abstract
+  #       .params(
+  #         name: Symbol,
+  #       ).returns(T.untyped)
+  #   end
+  #   def get_field_value(name); end
+  # end
+
   class Type
     #
     # Contains information about one type.
@@ -124,6 +147,8 @@ class Binner
 
     extend(T::Sig)
     extend(T::Generic)
+
+    # include(FieldReader)
 
     TargetT = type_member
 
@@ -133,24 +158,37 @@ class Binner
     sig do
       params(
         klass: Class,
-        # Represents the version currently at.
+        # Represents the version currently at (encoding version).
         version: Integer,
+        factory: T.proc.params(fields: T::Hash[Symbol, T.untyped]).returns(TargetT),
       ).void
     end
-    def initialize(klass, version)
+    def initialize(klass, version, factory)
       @klass = klass
       @version = version
-      @fields = T.let([], T::Array[Field[T.untyped]])
+      @factory = factory
+
+      @fields = T.let({}, T::Hash[Symbol, Field[T.untyped]])
     end
 
     sig do
       params(
-        field: Field[TargetT],
+        field: Field[T.untyped],
       ).void
     end
     def add_field(field)
-      @fields << field
+      @fields[field.name] = field
     end
+
+    # sig do
+    #   override
+    #     .params(
+    #       name: Symbol,
+    #     ).returns(T.untyped)
+    # end
+    # def get_field_value(name)
+
+    # end
 
     sig do
       params(
@@ -164,7 +202,7 @@ class Binner
         data: {},
       )
 
-      @fields.each do |field|
+      @fields.values.each do |field|
         if field.part_of_version?(@version)
           out.data[field.name] = field.encode(obj, @version)
         end
@@ -179,7 +217,14 @@ class Binner
       ).returns(TargetT)
     end
     def decode(raw)
-      raise(NotImplementedError)
+      field_values = T.let({}, T::Hash[Symbol, T.untyped])
+
+      @fields.filter_map do |name, field|
+        next unless field.part_of_version?(@version)
+        field_values[field.name] = field.decode(T.must(raw.data[field.name]))
+      end
+
+      @factory.call(field_values)
     end
   end
 

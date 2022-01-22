@@ -1,4 +1,4 @@
-#typed: false
+#typed: true
 
 require_relative("../lib/binner")
 require "pp"
@@ -13,7 +13,9 @@ end
 
 binner = Binner.new()
 
-user_type = Binner::Type[User].new(User, 0)
+user_type = Binner::Type[User].new(User, 0, ->(fields) {
+  User.new(fields[:name])
+})
 
 user_name_field = Binner::Field[String].new(
   name: :name,
