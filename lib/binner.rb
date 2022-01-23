@@ -6,9 +6,11 @@ require "pry"
 
 #
 # Missing:
-# - deployment switch mechanism
+# - deployment switch mechanism -> The type encoder might just do that.
 # - missing tests
 # - nested objects
+# - final codecs (json, msgpack, etc)
+# - dsl
 #
 
 class Binner
@@ -27,7 +29,7 @@ class Binner
 
   class FieldWrapper < T::Struct
     const(:version, Integer)
-    const(:data, T.untyped)
+    const(:data, T.nilable(T.untyped))
   end
 
   class TypeWrapper < T::Struct
@@ -79,7 +81,7 @@ class Binner
         from_version: Integer,
         to_version: T.nilable(Integer),
         missing_default: T.nilable(TargetT),
-        encoder: T.proc.params(obj: TargetT).returns(FieldWrapper),
+        encoder: T.proc.params(obj: TargetT).returns(T.untyped),
       ).void
     end
     def initialize(name:, from_version:, to_version:, missing_default:, encoder:)
