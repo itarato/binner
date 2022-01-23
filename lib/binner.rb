@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 # typed: strict
 
-require "sorbet-runtime"
-require "pry"
+require("sorbet-runtime")
+require("pry")
 
 #
 # Missing:
@@ -238,6 +238,27 @@ class Binner
     end
   end
 
+  module Packer
+    extend(T::Sig)
+    extend(T::Helpers)
+
+    interface!
+
+    sig do
+      abstract
+        .params(type_wrapper: TypeWrapper)
+        .returns(T.untyped)
+    end
+    def pack(type_wrapper); end
+
+    sig do
+      abstract
+        .params(packed: T.untyped)
+        .returns(TypeWrapper)
+    end
+    def unpack(packed); end
+  end
+
   sig do
     void
   end
@@ -290,3 +311,5 @@ class Binner
     @types.find { |t| klass == t.klass } || raise(MissingCodecError)
   end
 end
+
+require_relative("packer/json/json_packer")

@@ -64,7 +64,8 @@ class User # V2
   end
 end
 
-binner = Binner.new()
+binner = Binner.new
+json_packer = JsonPacker.new
 
 user_type = Binner::Type[User].new(User, 2) do |fields|
   # This is type safe now.
@@ -130,21 +131,27 @@ binner.add_type(user_type)
 binner.add_type(company_type)
 
 encoded = binner.encode(User.new("Steve", 35, Company.new(:microsoft)))
+# pp encoded
+# pp encoded.serialize.to_json
+# pp Binner::TypeWrapper.from_hash(encoded.serialize)
+
+pp "JSON PACKED"
+pp json_packer.pack(encoded)
+pp "JSON UNPACKED"
+pp json_packer.unpack(json_packer.pack(encoded))
 pp encoded
-pp encoded.serialize.to_json
-pp Binner::TypeWrapper.from_hash(encoded.serialize)
 
-decoded = binner.decode(encoded)
-pp decoded
+# decoded = binner.decode(encoded)
+# pp decoded
 
-pp binner.decode(binner.encode(Company.new(:president)))
+# pp binner.decode(binner.encode(Company.new(:president)))
 
-encoded_v0 = Binner::TypeWrapper.from_hash(JSON.parse("{\"version\":0,\"klass\":\"User\",\"data\":{\"name\":{\"version\":0,\"data\":\"Steve\"}}}"))
-pp encoded_v0
-decoded_v0 = binner.decode(encoded_v0)
-pp decoded_v0
+# encoded_v0 = Binner::TypeWrapper.from_hash(JSON.parse("{\"version\":0,\"klass\":\"User\",\"data\":{\"name\":{\"version\":0,\"data\":\"Steve\"}}}"))
+# pp encoded_v0
+# decoded_v0 = binner.decode(encoded_v0)
+# pp decoded_v0
 
-encoded_v1 = Binner::TypeWrapper.from_hash(JSON.parse("{\"version\":1,\"klass\":\"User\",\"data\":{\"name\":{\"version\":1,\"data\":\"Steve\"},\"age\":{\"version\":1,\"data\":35}}}"))
-pp encoded_v1
-decoded_v1 = binner.decode(encoded_v1)
-pp decoded_v1
+# encoded_v1 = Binner::TypeWrapper.from_hash(JSON.parse("{\"version\":1,\"klass\":\"User\",\"data\":{\"name\":{\"version\":1,\"data\":\"Steve\"},\"age\":{\"version\":1,\"data\":35}}}"))
+# pp encoded_v1
+# decoded_v1 = binner.decode(encoded_v1)
+# pp decoded_v1
