@@ -2,11 +2,13 @@
 # typed: strict
 
 require "sorbet-runtime"
+require "pry"
 
 #
 # Missing:
 # - deployment switch mechanism
 # - missing tests
+# - nested objects
 #
 
 class Binner
@@ -30,8 +32,8 @@ class Binner
 
   class TypeWrapper < T::Struct
     const(:version, Integer)
-    const(:type, Class)
-    const(:data, T::Hash[Symbol, FieldWrapper])
+    const(:klass, String)
+    const(:data, T::Hash[String, FieldWrapper])
   end
 
   class FieldDecoder
@@ -65,22 +67,28 @@ class Binner
 
     TargetT = type_member
 
-    sig { returns(Symbol) }
+    sig { returns(String) }
     attr_reader(:name)
+
+    sig { returns(T.nilable(TargetT)) }
+    attr_reader(:missing_default)
 
     sig do
       params(
-        name: Symbol,
+        name: String,
         from_version: Integer,
         to_version: T.nilable(Integer),
+        missing_default: T.nilable(TargetT),
         encoder: T.proc.params(obj: TargetT).returns(FieldWrapper),
       ).void
     end
-    def initialize(name:, from_version:, to_version:, encoder:)
+    def initialize(name:, from_version:, to_version:, missing_default:, encoder:)
       @name = name
       @from_version = from_version
       @to_version = to_version
+      @missing_default = missing_default
       @encoder = encoder
+
       @decoders = T.let({}, T::Hash[Integer, FieldDecoder[T.untyped]])
     end
 
@@ -115,7 +123,10 @@ class Binner
       version = raw.version
       raise(NonSupportedVersionError) unless part_of_version?(version)
 
-      decoder = @decoders[version]
+      latest_decoder_version = @decoders.keys.sort.reverse.detect { |decoder_version| decoder_version <= version }
+      raise(DecoderNotFoundError) unless latest_decoder_version
+
+      decoder = @decoders[latest_decoder_version]
       raise(DecoderNotFoundError) unless decoder
 
       data = raw.data
@@ -129,6 +140,15 @@ class Binner
     end
     def part_of_version?(version)
       @from_version <= version && (@to_version.nil? || version <= @to_version)
+    end
+
+    sig do
+      params(
+        version: Integer,
+      ).returns(T::Boolean)
+    end
+    def introduced_after?(version)
+      version < @from_version
     end
   end
 
@@ -150,7 +170,7 @@ class Binner
         klass: Class,
         # Represents the version currently at (encoding version).
         version: Integer,
-        factory: T.proc.params(fields: T::Hash[Symbol, T.untyped]).returns(TargetT),
+        factory: T.proc.params(fields: T::Hash[String, T.untyped]).returns(TargetT),
       ).void
     end
     def initialize(klass, version, &factory)
@@ -158,7 +178,7 @@ class Binner
       @version = version
       @factory = factory
 
-      @fields = T.let({}, T::Hash[Symbol, Field[T.untyped]])
+      @fields = T.let({}, T::Hash[String, Field[T.untyped]])
     end
 
     sig do
@@ -178,7 +198,7 @@ class Binner
     def encode(obj)
       out = TypeWrapper.new(
         version: @version,
-        type: @klass,
+        klass: T.must(@klass.name),
         data: {},
       )
 
@@ -197,11 +217,19 @@ class Binner
       ).returns(TargetT)
     end
     def decode(raw)
-      field_values = T.let({}, T::Hash[Symbol, T.untyped])
+      #
+      # Here decoding for Type-@version.
+      #
+      field_values = T.let({}, T::Hash[String, T.untyped])
 
       @fields.filter_map do |name, field|
-        next unless field.part_of_version?(@version)
-        field_values[field.name] = field.decode(T.must(raw.data[field.name]))
+        if field.part_of_version?(@version)
+          raw_data = raw.data[field.name]
+
+          field_values[field.name] = raw_data ? field.decode(raw_data) : field.missing_default
+        elsif field.introduced_after?(@version)
+          field_values[field.name] = field.missing_default
+        end
       end
 
       @factory.call(field_values)
@@ -245,8 +273,8 @@ class Binner
     ).returns(T.untyped)
   end
   def decode(raw)
-    klass = raw.type
-    type_for(klass).decode(raw)
+    klass = raw.klass
+    type_for(Kernel.const_get(klass)).decode(raw)
   end
 
   private
