@@ -141,6 +141,10 @@ pp "JSON UNPACKED"
 pp json_packer.unpack(json_packer.pack(encoded))
 pp encoded
 
+# pp packed_ir = encoded.to_packed_ir
+# pp Binner::TypeWrapper.from_packed_ir(packed_ir)
+# pp encoded
+
 # decoded = binner.decode(encoded)
 # pp decoded
 

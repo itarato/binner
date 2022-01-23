@@ -16,7 +16,7 @@ class JsonPacker
       .returns(T.untyped)
   end
   def pack(type_wrapper)
-    type_wrapper.serialize.to_json
+    type_wrapper.to_packed_ir.to_json
   end
 
   sig do
@@ -25,6 +25,6 @@ class JsonPacker
       .returns(Binner::TypeWrapper)
   end
   def unpack(packed)
-    Binner::TypeWrapper.from_hash(JSON.parse(packed))
+    Binner::TypeWrapper.from_packed_ir(JSON.parse(packed))
   end
 end
