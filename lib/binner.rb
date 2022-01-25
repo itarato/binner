@@ -161,10 +161,11 @@ class Binner
     sig do
       params(
         decoder: FieldDecoder[T.untyped],
-      ).void
+      ).returns(T.self_type)
     end
     def add_decoder(decoder)
       @decoders[decoder.version] = decoder
+      self
     end
 
     sig do
@@ -250,10 +251,11 @@ class Binner
     sig do
       params(
         field: Field[T.untyped],
-      ).void
+      ).returns(T.self_type)
     end
     def add_field(field)
       @fields[field.name] = field
+      self
     end
 
     sig do

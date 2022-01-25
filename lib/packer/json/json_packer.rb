@@ -16,7 +16,7 @@ class JsonPacker
       .returns(T.untyped)
   end
   def pack(type_wrapper)
-    type_wrapper.to_packed_ir.to_json
+    T.unsafe(type_wrapper.to_packed_ir).to_json
   end
 
   sig do
