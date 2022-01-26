@@ -146,9 +146,10 @@ class Binner
         to_version: T.nilable(Integer),
         missing_default: T.nilable(TargetT),
         encoder: T.proc.params(obj: TargetT).returns(T.untyped),
+        builder: T.proc.void,
       ).void
     end
-    def initialize(name:, from_version:, to_version:, missing_default:, encoder:)
+    def initialize(name:, from_version:, to_version:, missing_default:, encoder:, &builder)
       @name = name
       @from_version = from_version
       @to_version = to_version
@@ -156,6 +157,8 @@ class Binner
       @encoder = encoder
 
       @decoders = T.let({}, T::Hash[Integer, FieldDecoder[T.untyped]])
+
+      instance_eval(&builder)
     end
 
     sig do
@@ -237,15 +240,29 @@ class Binner
         klass: Class,
         # Represents the version currently at (encoding version).
         version: Integer,
+        builder: T.proc.void,
+      ).void
+    end
+    def initialize(klass, version, &builder)
+      @klass = klass
+      @version = version
+      @factory = T.let(
+        nil,
+        T.nilable(T.proc.params(fields: T::Hash[String, T.untyped]).returns(TargetT)),
+      )
+
+      @fields = T.let({}, T::Hash[String, Field[T.untyped]])
+
+      instance_eval(&builder)
+    end
+
+    sig do
+      params(
         factory: T.proc.params(fields: T::Hash[String, T.untyped]).returns(TargetT),
       ).void
     end
-    def initialize(klass, version, &factory)
-      @klass = klass
-      @version = version
+    def set_factory(factory)
       @factory = factory
-
-      @fields = T.let({}, T::Hash[String, Field[T.untyped]])
     end
 
     sig do
@@ -288,6 +305,8 @@ class Binner
       #
       # Here decoding for Type-@version.
       #
+      raise(DecoderNotFoundError) unless @factory
+
       field_values = T.let({}, T::Hash[String, T.untyped])
 
       @fields.filter_map do |name, field|

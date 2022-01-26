@@ -78,11 +78,14 @@ user_name_field = Binner::Field[String].new(
   to_version: nil,
   missing_default: nil,
   encoder: ->(o) { o.name },
-)
-user_name_field.add_decoder(Binner::FieldDecoder[String].new(0) do |raw|
-  # Output is type safe now.
-  raw
-end)
+) do
+  T.bind(self, Binner::Field[String])
+
+  add_decoder(Binner::FieldDecoder[String].new(0) do |raw|
+    # Output is type safe now.
+    raw
+  end)
+end
 
 user_age_field = Binner::Field[Integer].new(
   name: "age",
@@ -90,10 +93,13 @@ user_age_field = Binner::Field[Integer].new(
   to_version: nil,
   missing_default: nil,
   encoder: ->(o) { o.age },
-)
-user_age_field.add_decoder(Binner::FieldDecoder[Integer].new(1) do |raw|
-  raw
-end)
+) do
+  T.bind(self, Binner::Field[Integer])
+
+  add_decoder(Binner::FieldDecoder[Integer].new(1) do |raw|
+    raw
+  end)
+end
 
 user_company_field = Binner::Field[Company].new(
   name: "company",
@@ -101,10 +107,13 @@ user_company_field = Binner::Field[Company].new(
   to_version: nil,
   missing_default: Company.new(:acme),
   encoder: ->(o) { binner.encode(o.company) },
-)
-user_company_field.add_decoder(Binner::FieldDecoder[Company].new(2) do |raw|
-  binner.decode(raw)
-end)
+) do
+  T.bind(self, Binner::Field[Company])
+
+  add_decoder(Binner::FieldDecoder[Company].new(2) do |raw|
+    binner.decode(raw)
+  end)
+end
 
 user_type.add_field(user_name_field)
 user_type.add_field(user_age_field)
@@ -120,10 +129,13 @@ binner_title = Binner::Field[Symbol].new(
   to_version: nil,
   missing_default: nil,
   encoder: ->(o) { o.title.to_s },
-)
-binner_title.add_decoder(Binner::FieldDecoder[Symbol].new(0) do |raw|
-  raw.to_sym
-end)
+) do
+  T.bind(self, Binner::Field[Symbol])
+
+  add_decoder(Binner::FieldDecoder[Symbol].new(0) do |raw|
+    raw.to_sym
+  end)
+end
 
 company_type.add_field(binner_title)
 
