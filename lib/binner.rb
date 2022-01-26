@@ -6,10 +6,8 @@ require("pry")
 
 #
 # Missing:
-# - deployment switch mechanism -> The type encoder might just do that.
 # - missing tests
-# - nested objects
-# - final codecs (json, msgpack, etc)
+# - final codecs (msgpack, protobuf, etc)
 # - dsl
 # - reference tracking
 #
@@ -27,6 +25,7 @@ class Binner
   class NonSupportedVersionError < BinnerError; end
   class VersionNotFoundError < BinnerError; end
   class DecoderNotFoundError < BinnerError; end
+  class EncoderNotFoundError < BinnerError; end
 
   class FieldWrapper < T::Struct
     extend(T::Sig)
@@ -131,12 +130,14 @@ class Binner
     extend(T::Sig)
     extend(T::Generic)
 
-    TargetT = type_member
+    OwnerT = type_member
+    FieldT = type_member
+    SerializedT = type_member
 
     sig { returns(String) }
     attr_reader(:name)
 
-    sig { returns(T.nilable(TargetT)) }
+    sig { returns(T.nilable(FieldT)) }
     attr_reader(:missing_default)
 
     sig do
@@ -144,21 +145,34 @@ class Binner
         name: String,
         from_version: Integer,
         to_version: T.nilable(Integer),
-        missing_default: T.nilable(TargetT),
-        encoder: T.proc.params(obj: TargetT).returns(T.untyped),
+        missing_default: T.nilable(FieldT),
         builder: T.proc.void,
       ).void
     end
-    def initialize(name:, from_version:, to_version:, missing_default:, encoder:, &builder)
+    def initialize(name:, from_version:, to_version:, missing_default:, &builder)
       @name = name
       @from_version = from_version
       @to_version = to_version
       @missing_default = missing_default
-      @encoder = encoder
+      # TODO: we could add a new generic for the parent type
+      @encoder = T.let(
+        nil,
+        T.nilable(T.proc.params(obj: OwnerT).returns(SerializedT)),
+      )
 
+      # TODO: Are we really don't know the type?
       @decoders = T.let({}, T::Hash[Integer, FieldDecoder[T.untyped]])
 
       instance_eval(&builder)
+    end
+
+    sig do
+      params(
+        encoder: T.proc.params(obj: OwnerT).returns(SerializedT),
+      ).void
+    end
+    def set_encoder(&encoder)
+      @encoder = encoder
     end
 
     sig do
@@ -173,11 +187,13 @@ class Binner
 
     sig do
       params(
-        obj: TargetT,
+        obj: OwnerT,
         version: Integer, # Coming from the parent type codec.
       ).returns(FieldWrapper)
     end
     def encode(obj, version)
+      raise(EncoderNotFoundError) unless @encoder
+
       FieldWrapper.new(
         version: version,
         data: @encoder.call(obj),
@@ -187,7 +203,7 @@ class Binner
     sig do
       params(
         raw: FieldWrapper,
-      ).returns(TargetT)
+      ).returns(FieldT)
     end
     def decode(raw)
       version = raw.version
@@ -251,7 +267,8 @@ class Binner
         T.nilable(T.proc.params(fields: T::Hash[String, T.untyped]).returns(TargetT)),
       )
 
-      @fields = T.let({}, T::Hash[String, Field[T.untyped]])
+      # TODO: Can we do better typing here?
+      @fields = T.let({}, T::Hash[String, Field[T.untyped, T.untyped, T.untyped]])
 
       instance_eval(&builder)
     end
@@ -261,13 +278,13 @@ class Binner
         factory: T.proc.params(fields: T::Hash[String, T.untyped]).returns(TargetT),
       ).void
     end
-    def set_factory(factory)
+    def set_factory(&factory)
       @factory = factory
     end
 
     sig do
       params(
-        field: Field[T.untyped],
+        field: Field[T.untyped, T.untyped, T.untyped],
       ).returns(T.self_type)
     end
     def add_field(field)

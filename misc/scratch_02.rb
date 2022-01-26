@@ -67,77 +67,83 @@ end
 binner = Binner.new
 json_packer = JsonPacker.new
 
-user_type = Binner::Type[User].new(User, 2) do |fields|
-  # This is type safe now.
-  User.new(fields["name"], fields["age"], fields["company"])
-end
+user_type = Binner::Type[User].new(User, 2) do
+  T.bind(self, Binner::Type[User])
 
-user_name_field = Binner::Field[String].new(
-  name: "name",
-  from_version: 0,
-  to_version: nil,
-  missing_default: nil,
-  encoder: ->(o) { o.name },
-) do
-  T.bind(self, Binner::Field[String])
+  set_factory do |fields|
+    # This is type safe now.
+    User.new(fields["name"], fields["age"], fields["company"])
+  end
 
-  add_decoder(Binner::FieldDecoder[String].new(0) do |raw|
-    # Output is type safe now.
-    raw
+  add_field(Binner::Field[User, String, String].new(
+    name: "name",
+    from_version: 0,
+    to_version: nil,
+    missing_default: nil,
+  ) do
+    T.bind(self, Binner::Field[User, String, String])
+
+    set_encoder { |obj| obj.name }
+
+    add_decoder(Binner::FieldDecoder[String].new(0) do |raw|
+      # Output is type safe now.
+      raw
+    end)
+  end)
+
+  add_field(Binner::Field[User, Integer, Integer].new(
+    name: "age",
+    from_version: 1,
+    to_version: nil,
+    missing_default: nil,
+  ) do
+    T.bind(self, Binner::Field[User, Integer, Integer])
+
+    set_encoder { |obj| obj.age || 0 }
+
+    add_decoder(Binner::FieldDecoder[Integer].new(1) do |raw|
+      raw
+    end)
+  end)
+
+  add_field(Binner::Field[User, Company, Binner::TypeWrapper].new(
+    name: "company",
+    from_version: 2,
+    to_version: nil,
+    missing_default: Company.new(:acme),
+  ) do
+    T.bind(self, Binner::Field[User, Company, Binner::TypeWrapper])
+
+    set_encoder { |obj| binner.encode(obj.company) }
+
+    add_decoder(Binner::FieldDecoder[Company].new(2) do |raw|
+      binner.decode(raw)
+    end)
   end)
 end
 
-user_age_field = Binner::Field[Integer].new(
-  name: "age",
-  from_version: 1,
-  to_version: nil,
-  missing_default: nil,
-  encoder: ->(o) { o.age },
-) do
-  T.bind(self, Binner::Field[Integer])
+company_type = Binner::Type[Company].new(Company, 0) do
+  T.bind(self, Binner::Type[Company])
 
-  add_decoder(Binner::FieldDecoder[Integer].new(1) do |raw|
-    raw
+  set_factory do |fields|
+    Company.new(fields["title"])
+  end
+
+  add_field(Binner::Field[Company, Symbol, String].new(
+    name: "title",
+    from_version: 0,
+    to_version: nil,
+    missing_default: nil,
+  ) do
+    T.bind(self, Binner::Field[Company, Symbol, String])
+
+    set_encoder { |obj| obj.title.to_s }
+
+    add_decoder(Binner::FieldDecoder[Symbol].new(0) do |raw|
+      raw.to_sym
+    end)
   end)
 end
-
-user_company_field = Binner::Field[Company].new(
-  name: "company",
-  from_version: 2,
-  to_version: nil,
-  missing_default: Company.new(:acme),
-  encoder: ->(o) { binner.encode(o.company) },
-) do
-  T.bind(self, Binner::Field[Company])
-
-  add_decoder(Binner::FieldDecoder[Company].new(2) do |raw|
-    binner.decode(raw)
-  end)
-end
-
-user_type.add_field(user_name_field)
-user_type.add_field(user_age_field)
-user_type.add_field(user_company_field)
-
-company_type = Binner::Type[Company].new(Company, 0) do |fields|
-  Company.new(fields["title"])
-end
-
-binner_title = Binner::Field[Symbol].new(
-  name: "title",
-  from_version: 0,
-  to_version: nil,
-  missing_default: nil,
-  encoder: ->(o) { o.title.to_s },
-) do
-  T.bind(self, Binner::Field[Symbol])
-
-  add_decoder(Binner::FieldDecoder[Symbol].new(0) do |raw|
-    raw.to_sym
-  end)
-end
-
-company_type.add_field(binner_title)
 
 binner.add_type(user_type)
 binner.add_type(company_type)
