@@ -47,6 +47,54 @@ class BinnerTest < Minitest::Test
     example = Example.new(ExampleComplexProperty.new(true, 12, "hello"), "world")
 
     binner = Binner.new
+
+    binner.add_type(Binner::Type[ExampleComplexProperty].new(ExampleComplexProperty, 0) do
+      T.bind(self, Binner::Type[ExampleComplexProperty])
+
+      set_factory do |fields|
+        ExampleComplexProperty.new(fields['bool'], fields['num'], fields['str'])
+      end
+
+      add_field(Binner::Field[ExampleComplexProperty, T::Boolean, T::Boolean].new(
+        name: 'bool',
+        from_version: 0,
+        to_version: nil,
+        missing_default: nil,
+      ) do
+        T.bind(self, Binner::Field[ExampleComplexProperty, T::Boolean, T::Boolean])
+
+        set_encoder { |obj| obj.bool }
+
+        add_decoder(Binner::FieldDecoder[T::Boolean].new(0) { |raw| raw })
+      end)
+
+      add_field(Binner::Field[ExampleComplexProperty, Integer, Integer].new(
+        name: 'num',
+        from_version: 0,
+        to_version: nil,
+        missing_default: nil,
+      ) do
+        T.bind(self, Binner::Field[ExampleComplexProperty, Integer, Integer])
+
+        set_encoder { |obj| obj.num }
+
+        add_decoder(Binner::FieldDecoder[Integer].new(0) { |raw| raw })
+      end)
+
+      add_field(Binner::Field[ExampleComplexProperty, String, String].new(
+        name: 'str',
+        from_version: 0,
+        to_version: nil,
+        missing_default: nil,
+      ) do
+        T.bind(self, Binner::Field[ExampleComplexProperty, String, String])
+
+        set_encoder { |obj| obj.str }
+
+        add_decoder(Binner::FieldDecoder[String].new(0) { |raw| raw })
+      end)
+    end)
+
     binner.add_type(Binner::Type[Example].new(Example, 0) do
       T.bind(self, Binner::Type[Example])
 
@@ -90,5 +138,6 @@ class BinnerTest < Minitest::Test
     end)
 
     re_coded_example = binner.decode(binner.encode(example))
+    assert_equal(example, re_coded_example)
   end
 end
