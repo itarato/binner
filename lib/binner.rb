@@ -21,7 +21,7 @@ class Binner
   extend(T::Sig)
 
   class BinnerError < StandardError; end
-  # TODO: Add the "what?"
+  class BadIRTypeError < BinnerError; end
   class MissingCodecError < BinnerError; end
   class NonSupportedVersionError < BinnerError; end
   class VersionNotFoundError < BinnerError; end
@@ -43,7 +43,7 @@ class Binner
         "data" => case data
           when String, Numeric, Symbol, NilClass, TrueClass, FalseClass then data
           when TypeWrapper then data.to_packed_ir
-          else raise("Unexpected primitive serializable data type")
+          else raise(BadIRTypeError, "Unexpected primitive serializable data type")
           end,
       }
     end
@@ -195,7 +195,7 @@ class Binner
       ).returns(FieldWrapper)
     end
     def encode(obj, version)
-      raise(EncoderNotFoundError) unless @encoder
+      raise(EncoderNotFoundError, "Field #{@name} missing an encoder") unless @encoder
 
       FieldWrapper.new(
         version: version,
@@ -210,13 +210,13 @@ class Binner
     end
     def decode(raw)
       version = raw.version
-      raise(NonSupportedVersionError) unless part_of_version?(version)
+      raise(NonSupportedVersionError, "Field #{@name} does not support decoding for version #{version}") unless part_of_version?(version)
 
       latest_decoder_version = @decoders.keys.sort.reverse.detect { |decoder_version| decoder_version <= version }
-      raise(DecoderNotFoundError) unless latest_decoder_version
+      raise(DecoderNotFoundError, "Field #{@name} does not find decoder definition for version #{version}") unless latest_decoder_version
 
       decoder = @decoders[latest_decoder_version]
-      raise(DecoderNotFoundError) unless decoder
+      raise(DecoderNotFoundError, "Field #{@name} does not find decoder for version #{version}") unless decoder
 
       data = raw.data
       decoder.decoder.call(data)
@@ -325,7 +325,7 @@ class Binner
       #
       # Here decoding for Type-@version.
       #
-      raise(DecoderNotFoundError) unless @factory
+      raise(DecoderNotFoundError, "Missing factory on type #{@klass}") unless @factory
 
       field_values = T.let({}, T::Hash[String, T.untyped])
 
@@ -390,7 +390,7 @@ class Binner
       obj.is_a?(t.klass)
     end
 
-    raise(MissingCodecError) unless t
+    raise(MissingCodecError, "Cannot find codec for: #{obj}") unless t
 
     t.encode(obj)
   end
@@ -413,7 +413,7 @@ class Binner
     ).returns(Type[T.untyped])
   end
   def type_for(klass)
-    @types.find { |t| klass == t.klass } || raise(MissingCodecError)
+    @types.find { |t| klass == t.klass } || raise(MissingCodecError, "Missing codec for #{klass}")
   end
 end
 
