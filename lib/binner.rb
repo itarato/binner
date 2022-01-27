@@ -21,6 +21,7 @@ class Binner
   extend(T::Sig)
 
   class BinnerError < StandardError; end
+  # TODO: Add the "what?"
   class MissingCodecError < BinnerError; end
   class NonSupportedVersionError < BinnerError; end
   class VersionNotFoundError < BinnerError; end
@@ -101,6 +102,7 @@ class Binner
     end
   end
 
+  # TODO: Basic decoder could be simple property access from source object? We could save some boilerplate code.
   class FieldDecoder
     extend(T::Sig)
     extend(T::Generic)
@@ -114,6 +116,7 @@ class Binner
     sig { returns(T.proc.params(obj: T.untyped).returns(TargetT)) }
     attr_reader(:decoder)
 
+    # TODO: we should make version a kwarg - to make it readable
     sig do
       params(
         version: Integer,
