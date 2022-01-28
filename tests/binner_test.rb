@@ -58,23 +58,17 @@ class BinnerTest < Minitest::Test
       add_field(Binner::Field[ExampleComplexProperty, T::Boolean, T::Boolean].new(
         name: 'bool',
         from_version: 0,
-        to_version: nil,
-        missing_default: nil,
-      ).with_default)
+      ).with_primitive_default)
 
       add_field(Binner::Field[ExampleComplexProperty, Integer, Integer].new(
         name: 'num',
         from_version: 0,
-        to_version: nil,
-        missing_default: nil,
-      ).with_default)
+      ).with_primitive_default)
 
       add_field(Binner::Field[ExampleComplexProperty, String, String].new(
         name: 'str',
         from_version: 0,
-        to_version: nil,
-        missing_default: nil,
-      ).with_default)
+      ).with_primitive_default)
     end)
 
     binner.add_type(Binner::Type[Example].new(Example, 0) do
@@ -87,26 +81,12 @@ class BinnerTest < Minitest::Test
       add_field(Binner::Field[Example, ExampleComplexProperty, Binner::Type[ExampleComplexProperty]].new(
         name: "complex",
         from_version: 0,
-        to_version: nil,
-        missing_default: nil,
-      ).with do
-        T.bind(self, Binner::Field[Example, ExampleComplexProperty, Binner::TypeWrapper])
-
-        set_encoder do |example|
-          binner.encode(example.complex)
-        end
-
-        add_decoder(Binner::FieldDecoder[ExampleComplexProperty].new(0) do |raw|
-          binner.decode(raw)
-        end)
-      end)
+      ).with_typed_codec(binner))
 
       add_field(Binner::Field[Example, String, String].new(
         name: "str",
         from_version: 0,
-        to_version: nil,
-        missing_default: nil,
-      ).with_default)
+      ).with_primitive_default)
     end)
 
     re_coded_example = binner.decode(binner.encode(example))

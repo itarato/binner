@@ -151,7 +151,7 @@ class Binner
         missing_default: T.nilable(FieldT),
       ).void
     end
-    def initialize(name:, from_version:, to_version:, missing_default:)
+    def initialize(name:, from_version:, to_version: nil, missing_default: nil)
       @name = name
       @from_version = from_version
       @to_version = to_version
@@ -179,9 +179,24 @@ class Binner
     sig do
       returns(T.self_type)
     end
-    def with_default
+    def with_primitive_default
       set_encoder { |parent| parent.public_send(@name) }
       add_decoder(Binner::FieldDecoder[FieldT].new(@from_version, &:itself))
+      self
+    end
+
+    sig do
+      params(
+        binner: Binner,
+      ).returns(T.self_type)
+    end
+    def with_typed_codec(binner)
+      set_encoder do |parent|
+        T.cast(binner.encode(parent.public_send(@name)), SerializedT)
+      end
+
+      add_decoder(Binner::FieldDecoder[FieldT].new(@from_version) { |raw| binner.decode(raw) })
+
       self
     end
 
