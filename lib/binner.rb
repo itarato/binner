@@ -111,7 +111,7 @@ class Binner
 
     # TODO: version here might not be useful, we only need it for the Field for selection.
     sig { returns(Integer) }
-    attr_reader(:version)
+    attr_reader(:from_version)
 
     sig { returns(T.proc.params(obj: T.untyped).returns(TargetT)) }
     attr_reader(:decoder)
@@ -119,12 +119,12 @@ class Binner
     # TODO: we should make version a kwarg - to make it readable
     sig do
       params(
-        version: Integer,
+        from_version: Integer,
         decoder: T.proc.params(obj: T.untyped).returns(TargetT),
       ).void
     end
-    def initialize(version, &decoder)
-      @version = version
+    def initialize(from_version, &decoder)
+      @from_version = from_version
       @decoder = decoder
     end
   end
@@ -149,10 +149,9 @@ class Binner
         from_version: Integer,
         to_version: T.nilable(Integer),
         missing_default: T.nilable(FieldT),
-        builder: T.proc.void,
       ).void
     end
-    def initialize(name:, from_version:, to_version:, missing_default:, &builder)
+    def initialize(name:, from_version:, to_version:, missing_default:)
       @name = name
       @from_version = from_version
       @to_version = to_version
@@ -165,8 +164,25 @@ class Binner
 
       # TODO: Are we really don't know the type?
       @decoders = T.let({}, T::Hash[Integer, FieldDecoder[T.untyped]])
+    end
 
+    sig do
+      params(
+        builder: T.proc.void,
+      ).returns(T.self_type)
+    end
+    def with(&builder)
       instance_eval(&builder)
+      self
+    end
+
+    sig do
+      returns(T.self_type)
+    end
+    def with_default
+      set_encoder { |parent| parent.public_send(@name) }
+      add_decoder(Binner::FieldDecoder[FieldT].new(@from_version, &:itself))
+      self
     end
 
     sig do
@@ -180,11 +196,11 @@ class Binner
 
     sig do
       params(
-        decoder: FieldDecoder[T.untyped],
+        decoder: FieldDecoder[FieldT],
       ).returns(T.self_type)
     end
     def add_decoder(decoder)
-      @decoders[decoder.version] = decoder
+      @decoders[decoder.from_version] = decoder
       self
     end
 

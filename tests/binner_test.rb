@@ -60,39 +60,21 @@ class BinnerTest < Minitest::Test
         from_version: 0,
         to_version: nil,
         missing_default: nil,
-      ) do
-        T.bind(self, Binner::Field[ExampleComplexProperty, T::Boolean, T::Boolean])
-
-        set_encoder { |obj| obj.bool }
-
-        add_decoder(Binner::FieldDecoder[T::Boolean].new(0) { |raw| raw })
-      end)
+      ).with_default)
 
       add_field(Binner::Field[ExampleComplexProperty, Integer, Integer].new(
         name: 'num',
         from_version: 0,
         to_version: nil,
         missing_default: nil,
-      ) do
-        T.bind(self, Binner::Field[ExampleComplexProperty, Integer, Integer])
-
-        set_encoder { |obj| obj.num }
-
-        add_decoder(Binner::FieldDecoder[Integer].new(0) { |raw| raw })
-      end)
+      ).with_default)
 
       add_field(Binner::Field[ExampleComplexProperty, String, String].new(
         name: 'str',
         from_version: 0,
         to_version: nil,
         missing_default: nil,
-      ) do
-        T.bind(self, Binner::Field[ExampleComplexProperty, String, String])
-
-        set_encoder { |obj| obj.str }
-
-        add_decoder(Binner::FieldDecoder[String].new(0) { |raw| raw })
-      end)
+      ).with_default)
     end)
 
     binner.add_type(Binner::Type[Example].new(Example, 0) do
@@ -107,7 +89,7 @@ class BinnerTest < Minitest::Test
         from_version: 0,
         to_version: nil,
         missing_default: nil,
-      ) do
+      ).with do
         T.bind(self, Binner::Field[Example, ExampleComplexProperty, Binner::TypeWrapper])
 
         set_encoder do |example|
@@ -124,17 +106,7 @@ class BinnerTest < Minitest::Test
         from_version: 0,
         to_version: nil,
         missing_default: nil,
-      ) do
-        T.bind(self, Binner::Field[Example, String, String])
-
-        set_encoder do |example|
-          example.str
-        end
-
-        add_decoder(Binner::FieldDecoder[String].new(0) do |raw|
-          raw
-        end)
-      end)
+      ).with_default)
     end)
 
     re_coded_example = binner.decode(binner.encode(example))

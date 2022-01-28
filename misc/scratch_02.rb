@@ -1,4 +1,4 @@
-#typed: strict
+#typed: ignore
 
 require_relative("../lib/binner")
 require "json"
