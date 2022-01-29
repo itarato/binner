@@ -3,9 +3,9 @@
 
 require "sorbet-runtime"
 require "pry"
-require "json"
+require "msgpack"
 
-class JsonPacker
+class MsgpackPacker
   extend(T::Sig)
 
   include(Binner::Packer)
@@ -16,7 +16,7 @@ class JsonPacker
       .returns(String)
   end
   def pack(type_wrapper)
-    T.unsafe(type_wrapper.to_packed_ir).to_json
+    MessagePack.pack(type_wrapper.to_packed_ir)
   end
 
   sig do
@@ -25,6 +25,6 @@ class JsonPacker
       .returns(Binner::TypeWrapper)
   end
   def unpack(packed)
-    Binner::TypeWrapper.from_packed_ir(JSON.parse(packed))
+    Binner::TypeWrapper.from_packed_ir(MessagePack.unpack(packed))
   end
 end
