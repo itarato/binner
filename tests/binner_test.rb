@@ -137,7 +137,6 @@ class BinnerTest < Minitest::Test
       ).with_primitive_default)
     end)
 
-
     o = ExampleSimple.new(:real)
     assert_equal(:real, o.value)
 
