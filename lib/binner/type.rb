@@ -59,18 +59,21 @@ class Binner
     sig do
       params(
         obj: TargetT,
+        encoding_version: T.nilable(Integer),
       ).returns(TypeWrapper)
     end
-    def encode(obj)
+    def encode(obj, encoding_version: nil)
+      encoding_version ||= @version
+
       out = TypeWrapper.new(
-        version: @version,
+        version: encoding_version,
         klass: T.must(@klass.name),
         data: {},
       )
 
       @fields.values.each do |field|
-        if field.part_of_version?(@version)
-          out.data[field.name] = field.encode(obj, @version)
+        if field.part_of_version?(encoding_version)
+          out.data[field.name] = field.encode(obj, encoding_version)
         end
       end
 

@@ -47,16 +47,17 @@ class Binner
   sig do
     params(
       obj: T.untyped,
+      version: T.nilable(Integer),
     ).returns(TypeWrapper)
   end
-  def encode(obj)
+  def encode(obj, version: nil)
     t = @types.find do |t|
       obj.is_a?(t.klass)
     end
 
     raise(MissingCodecError, "Cannot find codec for: #{obj}") unless t
 
-    t.encode(obj)
+    t.encode(obj, encoding_version: version)
   end
 
   sig do
