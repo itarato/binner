@@ -39,6 +39,14 @@ class BinnerTest < Minitest::Test
     end
   end
 
+  class ExampleSimple
+    attr_reader(:value)
+
+    def initialize(value)
+      @value = value
+    end
+  end
+
   def initialize(*)
     super
   end
@@ -91,5 +99,27 @@ class BinnerTest < Minitest::Test
 
     re_coded_example = binner.decode(binner.encode(example))
     assert_equal(example, re_coded_example)
+  end
+
+  def test_missing_value_is_fulfilled_before_field_exist
+    binner = Binner.new
+    binner.add_type(Binner::Type[ExampleSimple].new(ExampleSimple, 0) do
+      T.bind(self, Binner::Type[ExampleSimple])
+
+      set_factory { |fields| ExampleSimple.new(fields["value"]) }
+
+      add_field(Binner::Field[ExampleSimple, T.untyped, T.untyped].new(
+        name: "value",
+        from_version: 1,
+        missing_default: :missing_value,
+      ).with_primitive_default)
+    end)
+
+
+    o = ExampleSimple.new(:real)
+    assert_equal(:real, o.value)
+
+    o_decoded = binner.decode(binner.encode(o))
+    assert_equal(:missing_value, o_decoded.value)
   end
 end
