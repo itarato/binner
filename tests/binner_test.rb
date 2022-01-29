@@ -122,4 +122,8 @@ class BinnerTest < Minitest::Test
     o_decoded = binner.decode(binner.encode(o))
     assert_equal(:missing_value, o_decoded.value)
   end
+
+  def test_missing_value_is_fulfilled_when_decoded_from_old_version
+
+  end
 end
