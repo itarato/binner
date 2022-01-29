@@ -123,7 +123,47 @@ class BinnerTest < Minitest::Test
     assert_equal(:missing_value, o_decoded.value)
   end
 
-  def test_missing_value_is_fulfilled_when_decoded_from_old_version
+  def test_new_version_uses_new_version_fields
+    binner = Binner.new
+    binner.add_type(Binner::Type[ExampleSimple].new(ExampleSimple, 1) do
+      T.bind(self, Binner::Type[ExampleSimple])
 
+      set_factory { |fields| ExampleSimple.new(fields["value"]) }
+
+      add_field(Binner::Field[ExampleSimple, T.untyped, T.untyped].new(
+        name: "value",
+        from_version: 1,
+        missing_default: :missing_value,
+      ).with_primitive_default)
+    end)
+
+
+    o = ExampleSimple.new(:real)
+    assert_equal(:real, o.value)
+
+    o_decoded = binner.decode(binner.encode(o))
+    assert_equal(:real, o_decoded.value)
+  end
+
+  def test_old_version_encoded_will_use_missing_default_when_decoded_with_new_version
+    binner = Binner.new
+    binner.add_type(Binner::Type[ExampleSimple].new(ExampleSimple, 1) do
+      T.bind(self, Binner::Type[ExampleSimple])
+
+      set_factory { |fields| ExampleSimple.new(fields["value"]) }
+
+      add_field(Binner::Field[ExampleSimple, T.untyped, T.untyped].new(
+        name: "value",
+        from_version: 1,
+        missing_default: :missing_value,
+      ).with_primitive_default)
+    end)
+
+
+    o = ExampleSimple.new(:real)
+    assert_equal(:real, o.value)
+
+    o_decoded = binner.decode(binner.encode(o, version: 0))
+    assert_equal(:missing_value, o_decoded.value)
   end
 end
