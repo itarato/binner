@@ -83,3 +83,4 @@ class Binner
 end
 
 require_relative("packer/json/json_packer")
+require_relative("packer/msgpack/msgpack_packer")

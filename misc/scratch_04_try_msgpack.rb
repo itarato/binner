@@ -12,6 +12,8 @@ class User4
   end
 end
 
+msgpack = MsgpackPacker.new
+
 binner = Binner.new
 binner.add_type(Binner::Type[User4].new(User4, 0) do
   T.bind(self, Binner::Type[User4])
@@ -23,3 +25,15 @@ binner.add_type(Binner::Type[User4].new(User4, 0) do
     from_version: 0,
   ).with_primitive_default)
 end)
+
+encoded = binner.encode(User4.new("Rogan"))
+p encoded
+
+packed = msgpack.pack(encoded)
+p packed
+
+unpacked = msgpack.unpack(packed)
+p unpacked
+
+decoded = binner.decode(unpacked)
+p decoded
