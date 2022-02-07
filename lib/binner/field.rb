@@ -54,7 +54,7 @@ class Binner
     end
     def with_primitive_default
       set_encoder { |parent| parent.public_send(@name) }
-      add_decoder(Binner::FieldDecoder[FieldT].new(@from_version, &:itself))
+      add_decoder(Binner::FieldDecoder[FieldT].new(&:itself), from_version: @from_version)
       self
     end
 
@@ -68,7 +68,7 @@ class Binner
         T.cast(binner.encode(parent.public_send(@name)), SerializedT)
       end
 
-      add_decoder(Binner::FieldDecoder[FieldT].new(@from_version) { |raw| binner.decode(raw) })
+      add_decoder(Binner::FieldDecoder[FieldT].new { |raw| binner.decode(raw) }, from_version: @from_version)
 
       self
     end
@@ -85,10 +85,11 @@ class Binner
     sig do
       params(
         decoder: FieldDecoder[FieldT],
+        from_version: Integer,
       ).returns(T.self_type)
     end
-    def add_decoder(decoder)
-      @decoders[decoder.from_version] = decoder
+    def add_decoder(decoder, from_version:)
+      @decoders[from_version] = decoder
       self
     end
 
